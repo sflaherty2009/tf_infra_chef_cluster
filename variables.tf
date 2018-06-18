@@ -80,12 +80,12 @@ variable "chef_computer_name" {
 variable "auto_resource_group_name" {
   default = "azl-AutoServer-01"
 }
-variable "auto_admin_password" {
-  default = "ZyADTVd64swkdvfHFMeR"
-}
-variable "auto_admin_user" {
-  default = "devops"
-}
 variable "auto_computer_name" {
   default = "azl-AutoServer-01"
+}
+
+locals {
+  admin_credentials = "${split("\n",file("${path.module}/secrets/admin_credentials"))}"
+  auto_admin_user = "${local.admin_credentials[0]}"
+  auto_admin_password = "${local.admin_credentials[1]}"
 }
