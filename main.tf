@@ -151,14 +151,14 @@ resource "azurerm_virtual_machine" "automate" {
 
   os_profile {
     computer_name  = "${var.auto_computer_name}"
-    admin_username = "${var.auto_admin_user}"
-    admin_password = "${var.auto_admin_password}"
+    admin_username = "${local.auto_admin_user}"
+    admin_password = "${local.auto_admin_password}"
   }
   
   os_profile_linux_config {
     disable_password_authentication = false
       ssh_keys {
-        path = "/home/${var.auto_admin_user}/.ssh/authorized_keys"
+        path = "/home/${local.auto_admin_user}/.ssh/authorized_keys"
         key_data = "${file("~/.ssh/id_rsa.pub")}"
     }
   }
@@ -166,7 +166,7 @@ resource "azurerm_virtual_machine" "automate" {
   connection {
       type = "ssh"
       host = "${element(azurerm_public_ip.automate.*.ip_address, count.index)}"
-      user = "${var.auto_admin_user}"
+      user = "${local.auto_admin_user}"
       # password = "${var.admin_password}"
       private_key = "${file("~/.ssh/id_rsa")}"
       agent = false

@@ -1,0 +1,11 @@
+.DS_Store
+example.tf
+terraform.tfplan
+tfplan
+terraform.tfstate*
+*.tfstate
+.terraform/
+*~
+.*.swp
+secrets/
+
