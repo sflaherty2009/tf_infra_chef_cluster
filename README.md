@@ -37,14 +37,14 @@ All variables and descriptions can be found in variables.tf
 
 automate.tf
 
-- creates resource group, public & private ips, storage account and virtual machine necessary for chef automate server
+- creates resource group, private ips, storage account and virtual machine necessary for chef automate server
 - updates /etc/hosts on the runner vm as necessary
 - completes preflight changes and runs a preflight check before installing chef automate
 - installs azure cli, pulls down necessary files from azure file share and installs & configures chef automate
 
 chef.tf
 
-- creates resource group, public & private ips, storage account and virtual machine necessary for chef server
+- creates resource group, private ips, storage account and virtual machine necessary for chef server
 - updates /etc/hosts on the runner vm as necessary
 - installs azure cli, installs & configures chef automate & uploads necessary files to an azure file share for use with chef automate
 
@@ -55,7 +55,7 @@ provider.tf
 
 runner.tf
 
-- creates resource group, public & private ips, storage accounts and virtual machines necessary for automate runners
+- creates resource group, private ips, storage accounts and virtual machines necessary for automate runners
 - updates /etc/hosts on the runner vm as necessary
 - ssh into automate server and perform the install-runner command to setup server as a runner
 

@@ -6,16 +6,6 @@ resource "azurerm_resource_group" "runner" {
   depends_on = ["azurerm_virtual_machine.automate"]
 }
 
-# Create public IPs
-resource "azurerm_public_ip" "runner" {
-  name                         = "${var.runner_computer_name}-${format("%02d", count.index+1)}-pubip"
-  location                     = "${azurerm_resource_group.runner.location}"
-  resource_group_name          = "${azurerm_resource_group.runner.name}"
-  public_ip_address_allocation = "static"
-  domain_name_label            = "${var.runner_computer_name}-${format("%02d", count.index+1)}"
-  count                        = "${var.runner_count}"
-}
-
 # Create virtual NIC that will be used with our runner instance(s).
 resource "azurerm_network_interface" "runner" {
   name                = "${var.runner_computer_name}-${format("%02d", count.index+1)}-nic"
@@ -27,7 +17,6 @@ resource "azurerm_network_interface" "runner" {
     name                          = "${var.runner_computer_name}-${format("%02d", count.index+1)}-ipconf"
     subnet_id                     = "${var.subnet_id}"
     private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${element(azurerm_public_ip.runner.*.id, count.index)}"
   }
 }
 

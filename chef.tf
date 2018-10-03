@@ -5,15 +5,6 @@ resource "azurerm_resource_group" "chef" {
   location = "${var.location}"
 }
 
-# Create public IPs
-resource "azurerm_public_ip" "chef" {
-  name                         = "${var.chef_computer_name}-pubip"
-  location                     = "${azurerm_resource_group.chef.location}"
-  resource_group_name          = "${azurerm_resource_group.chef.name}"
-  public_ip_address_allocation = "static"
-  domain_name_label            = "${var.chef_computer_name}"
-}
-
 # Create virtual NIC that will be used with our chef instance.
 resource "azurerm_network_interface" "chef" {
   name                = "${var.chef_computer_name}-nic"
@@ -23,8 +14,8 @@ resource "azurerm_network_interface" "chef" {
   ip_configuration {
     name                          = "${var.chef_computer_name}-ipconf"
     subnet_id                     = "${var.subnet_id}"
-    private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${element(azurerm_public_ip.chef.*.id, count.index)}"
+    private_ip_address_allocation = "static"
+    private_ip_address            = "10.16.192.7"
   }
 }
 
@@ -108,18 +99,20 @@ resource "azurerm_virtual_machine" "chef" {
       "sudo az login --service-principal -u ${local.azure_service_principal} -p ${local.azure_password} --tenant ${local.azure_tenant_id}",
       "sudo az storage file upload --share-name automate --source /home/${local.admin_user}/delivery-user.pem --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
       "sudo az storage file upload --share-name automate --source /home/${local.admin_user}/trek-validator.pem --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
-      "sudo apt-get update",
-      "sudo apt-get install -y net-snmp",
+      "sudo apt-get -y install snmp snmp-mibs-downloader",
     ]
   }
 
   provisioner "file" {
     source      = "templates/snmpd.conf"
-    destination = "/etc/snmp/snmpd.conf"
+    destination = "/home/${local.admin_user}/snmpd.conf"
   }
 
   provisioner "remote-exec" {
     inline = [
+      "sudo mv /home/${local.admin_user}/snmpd.conf /etc/snmp/snmpd.conf",
+      "sudo chown root:root /etc/snmp/snmpd.conf",
+      "sudo chmod 0644 /etc/snmp/snmpd.conf",
       "sudo systemctl enable snmpd --now",
       "sudo systemctl restart snmpd",
     ]
@@ -153,4 +146,18 @@ resource "null_resource" "data_collection" {
       "chef-server-ctl reconfigure",
     ]
   }
+}
+
+module "backup_vm_chef" {
+  source                          = "git::https://bitbucket.org/trekbikes/dvo_module_backup_vm.git"
+
+  recovery_vault_rg               = "az-rg-rv-prod"
+  recovery_vault_name             = "AZ-RV-prod"
+  virtual_machines_resource_group = "${azurerm_resource_group.chef.name}"
+  virtual_machines_list           = "${azurerm_virtual_machine.chef.name}"
+  backup_policy                   = "TrekDailyBackupPolicy"
+
+  depends_on                      = [
+    "${azurerm_virtual_machine.chef.id}"
+  ]
 }
