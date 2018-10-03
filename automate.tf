@@ -131,4 +131,13 @@ resource "azurerm_virtual_machine" "automate" {
       "sudo az storage file upload --share-name automate --source /etc/delivery/trek-admin-credentials --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
     ]
   }
+
+  # SNMPD INSTALLATION
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get update",
+      "sudo apt-get install -y net-snmp",
+      "sudo systemctl enable snmpd --now",
+    ]
+  }
 }

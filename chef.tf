@@ -80,6 +80,18 @@ resource "azurerm_virtual_machine" "chef" {
     disable_password_authentication = false
   }
 
+  connection {
+    type             = "ssh"
+    host             = "${element(azurerm_network_interface.chef.*.private_ip_address, count.index)}"
+    user             = "${local.admin_user}"
+    password         = "${local.admin_password}"
+    agent            = false
+    bastion_host     = "azl-prd-jmp-01-az-rg-jump-lin.eastus2.cloudapp.azure.com"
+    bastion_port     = "4222"
+    bastion_user     = "${local.admin_user}"
+    bastion_password = "${local.admin_password}"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "sudo su -c 'echo 127.0.0.1 ${var.chef_computer_name} localhost > /etc/hosts'",
@@ -96,19 +108,21 @@ resource "azurerm_virtual_machine" "chef" {
       "sudo az login --service-principal -u ${local.azure_service_principal} -p ${local.azure_password} --tenant ${local.azure_tenant_id}",
       "sudo az storage file upload --share-name automate --source /home/${local.admin_user}/delivery-user.pem --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
       "sudo az storage file upload --share-name automate --source /home/${local.admin_user}/trek-validator.pem --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
+      "sudo apt-get update",
+      "sudo apt-get install -y net-snmp",
     ]
+  }
 
-    connection {
-      type             = "ssh"
-      host             = "${element(azurerm_network_interface.chef.*.private_ip_address, count.index)}"
-      user             = "${local.admin_user}"
-      password         = "${local.admin_password}"
-      agent            = false
-      bastion_host     = "azl-prd-jmp-01-az-rg-jump-lin.eastus2.cloudapp.azure.com"
-      bastion_port     = "4222"
-      bastion_user     = "${local.admin_user}"
-      bastion_password = "${local.admin_password}"
-    }
+  provisioner "file" {
+    source      = "templates/snmpd.conf"
+    destination = "/etc/snmp/snmpd.conf"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo systemctl enable snmpd --now",
+      "sudo systemctl restart snmpd",
+    ]
   }
 }
 
