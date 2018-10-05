@@ -111,3 +111,32 @@ resource "azurerm_virtual_machine" "chef" {
     }
   }
 }
+
+resource "null_resource" "data_collection" {
+  connection {
+    type             = "ssh"
+    host             = "${element(azurerm_network_interface.chef.*.private_ip_address, count.index)}"
+    user             = "${local.admin_user}"
+    password         = "${local.admin_password}"
+    agent            = false
+    bastion_host     = "azl-prd-jmp-01-az-rg-jump-lin.eastus2.cloudapp.azure.com"
+    bastion_port     = "4222"
+    bastion_user     = "${local.admin_user}"
+    bastion_password = "${local.admin_password}"
+  }
+
+  provisioner "file" {
+    source      = "templates/chef-server.rb"
+    destination = "/etc/opscode/chef-server.rb"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo su -c 'echo ${azurerm_network_interface.automate.private_ip_address} ${var.auto_computer_name} >> /etc/hosts'",
+      "sudo chef-server-ctl set-secret data_collector token '${file("${path.module}/secrets/admin_credentials")}'",
+      "sudo chef-server-ctl restart nginx",
+      "sudo chef-server-ctl restart opscode-erchef",
+      "chef-server-ctl reconfigure",
+    ]
+  }
+}
