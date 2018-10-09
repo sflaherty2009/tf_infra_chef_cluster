@@ -6,15 +6,6 @@ resource "azurerm_resource_group" "automate" {
   depends_on = ["azurerm_virtual_machine.chef"]
 }
 
-# Create public IPs
-resource "azurerm_public_ip" "automate" {
-  name                         = "${var.auto_computer_name}-pubip"
-  location                     = "${azurerm_resource_group.automate.location}"
-  resource_group_name          = "${azurerm_resource_group.automate.name}"
-  public_ip_address_allocation = "static"
-  domain_name_label            = "${var.auto_computer_name}"
-}
-
 # Create virtual NIC that will be used with our automate instance.
 resource "azurerm_network_interface" "automate" {
   name                = "${var.auto_computer_name}-nic"
@@ -24,8 +15,8 @@ resource "azurerm_network_interface" "automate" {
   ip_configuration {
     name                          = "${var.auto_computer_name}-ipconf"
     subnet_id                     = "${var.subnet_id}"
-    private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${element(azurerm_public_ip.automate.*.id, count.index)}"
+    private_ip_address_allocation = "static"
+    private_ip_address            = "10.16.192.8"
   }
 }
 
@@ -128,7 +119,47 @@ resource "azurerm_virtual_machine" "automate" {
       "sudo dpkg -i /tmp/${var.automate_package_name}",
       "sudo automate-ctl preflight-check",
       "sudo automate-ctl setup --license /home/${local.admin_user}/delivery.license --key /home/${local.admin_user}/delivery-user.pem --server-url https://${var.chef_computer_name}/organizations/trek --fqdn ${var.auto_computer_name} --enterprise trek --configure --no-build-node",
+      "sudo automate-ctl create-user trek moleksowicz --password Password#1 --roles admin",
+      "sudo automate-ctl create-user trek deasland --password Password#2 --roles admin",
+      "sudo automate-ctl create-user trek sflaherty --password Password#3 --roles admin",
       "sudo az storage file upload --share-name automate --source /etc/delivery/trek-admin-credentials --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
     ]
   }
+
+  # SNMPD INSTALLATION
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get -y install snmpd",
+    ]
+  }
+
+  provisioner "file" {
+    source      = "templates/snmpd.conf"
+    destination = "/home/${local.admin_user}/snmpd.conf"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo rm -rf /etc/snmp/snmpd.conf",
+      "sudo mv /home/${local.admin_user}/snmpd.conf /etc/snmp/snmpd.conf",
+      "sudo chown root:root /etc/snmp/snmpd.conf",
+      "sudo chmod 0644 /etc/snmp/snmpd.conf",
+      "sudo systemctl enable snmpd --now",
+      "sudo systemctl restart snmpd",
+    ]
+  }
+}
+
+module "backup_vm_automate" {
+  source                          = "git::https://bitbucket.org/trekbikes/dvo_module_backup_vm.git"
+
+  recovery_vault_rg               = "az-rg-rv-prod"
+  recovery_vault_name             = "AZ-RV-prod"
+  virtual_machines_resource_group = "${azurerm_resource_group.automate.name}"
+  virtual_machines_list           = "${azurerm_virtual_machine.automate.name}"
+  backup_policy                   = "TrekDailyBackupPolicy"
+
+  depends_on                      = [
+    "${azurerm_virtual_machine.automate.id}"
+  ]
 }

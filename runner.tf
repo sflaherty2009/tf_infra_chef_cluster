@@ -6,16 +6,6 @@ resource "azurerm_resource_group" "runner" {
   depends_on = ["azurerm_virtual_machine.automate"]
 }
 
-# Create public IPs
-resource "azurerm_public_ip" "runner" {
-  name                         = "${var.runner_computer_name}-${format("%02d", count.index+1)}-pubip"
-  location                     = "${azurerm_resource_group.runner.location}"
-  resource_group_name          = "${azurerm_resource_group.runner.name}"
-  public_ip_address_allocation = "static"
-  domain_name_label            = "${var.runner_computer_name}-${format("%02d", count.index+1)}"
-  count                        = "${var.runner_count}"
-}
-
 # Create virtual NIC that will be used with our runner instance(s).
 resource "azurerm_network_interface" "runner" {
   name                = "${var.runner_computer_name}-${format("%02d", count.index+1)}-nic"
@@ -27,7 +17,6 @@ resource "azurerm_network_interface" "runner" {
     name                          = "${var.runner_computer_name}-${format("%02d", count.index+1)}-ipconf"
     subnet_id                     = "${var.subnet_id}"
     private_ip_address_allocation = "dynamic"
-    public_ip_address_id          = "${element(azurerm_public_ip.runner.*.id, count.index)}"
   }
 }
 
@@ -106,23 +95,30 @@ resource "azurerm_virtual_machine" "runner" {
       bastion_password = "${local.admin_password}"
     }
   }
+}
+
+resource "null_resource" "runners" {
+  connection {
+    type             = "ssh"
+    host             = "${element(azurerm_network_interface.automate.*.private_ip_address, count.index)}"
+    user             = "${local.admin_user}"
+    password         = "${local.admin_password}"
+    agent            = false
+    bastion_host     = "azl-prd-jmp-01-az-rg-jump-lin.eastus2.cloudapp.azure.com"
+    bastion_port     = "4222"
+    bastion_user     = "${local.admin_user}"
+    bastion_password = "${local.admin_password}"
+  }
+
+  provisioner "file" {
+    source      = "templates/install-runners.sh"
+    destination = "/tmp/install-runners.sh"
+  }
 
   provisioner "remote-exec" {
     inline = [
-      "sudo su -c 'echo ${element(azurerm_network_interface.runner.*.private_ip_address, count.index)} ${var.runner_computer_name}-${format("%02d", count.index+1)} >> /etc/hosts'",
-      "sudo automate-ctl install-runner ${var.runner_computer_name}-${format("%02d", count.index+1)} ${local.admin_user} --password ${local.admin_password} --chefdk-version ${var.runner_chefdk_version} --yes",
+      "sudo chmod 744 /tmp/install-runners.sh"
+      "sudo /tmp/install-runners.sh '${var.runner_computer_name}' '${var.runner_count}' '${local.admin_user}' '${local.admin_password}' '${var.runner_chefdk_version}' '${join("' ", azurerm_network_interface.runner.*.private_ip_address)}"'
     ]
-
-    connection {
-      type             = "ssh"
-      host             = "${element(azurerm_network_interface.automate.*.private_ip_address, count.index)}"
-      user             = "${local.admin_user}"
-      password         = "${local.admin_password}"
-      agent            = false
-      bastion_host     = "azl-prd-jmp-01-az-rg-jump-lin.eastus2.cloudapp.azure.com"
-      bastion_port     = "4222"
-      bastion_user     = "${local.admin_user}"
-      bastion_password = "${local.admin_password}"
-    }
   }
 }
