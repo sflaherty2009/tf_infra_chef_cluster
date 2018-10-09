@@ -16,7 +16,7 @@ resource "azurerm_network_interface" "automate" {
     name                          = "${var.auto_computer_name}-ipconf"
     subnet_id                     = "${var.subnet_id}"
     private_ip_address_allocation = "static"
-    private_ip_address            = "10.16.192.7"
+    private_ip_address            = "10.16.192.8"
   }
 }
 
@@ -119,6 +119,9 @@ resource "azurerm_virtual_machine" "automate" {
       "sudo dpkg -i /tmp/${var.automate_package_name}",
       "sudo automate-ctl preflight-check",
       "sudo automate-ctl setup --license /home/${local.admin_user}/delivery.license --key /home/${local.admin_user}/delivery-user.pem --server-url https://${var.chef_computer_name}/organizations/trek --fqdn ${var.auto_computer_name} --enterprise trek --configure --no-build-node",
+      "sudo automate-ctl create-user trek moleksowicz --password Password#1 --roles admin",
+      "sudo automate-ctl create-user trek deasland --password Password#2 --roles admin",
+      "sudo automate-ctl create-user trek sflaherty --password Password#3 --roles admin",
       "sudo az storage file upload --share-name automate --source /etc/delivery/trek-admin-credentials --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
     ]
   }
@@ -126,7 +129,7 @@ resource "azurerm_virtual_machine" "automate" {
   # SNMPD INSTALLATION
   provisioner "remote-exec" {
     inline = [
-      "sudo apt-get -y install snmp snmp-mibs-downloader",
+      "sudo apt-get -y install snmpd",
     ]
   }
 
@@ -137,6 +140,7 @@ resource "azurerm_virtual_machine" "automate" {
 
   provisioner "remote-exec" {
     inline = [
+      "sudo rm -rf /etc/snmp/snmpd.conf",
       "sudo mv /home/${local.admin_user}/snmpd.conf /etc/snmp/snmpd.conf",
       "sudo chown root:root /etc/snmp/snmpd.conf",
       "sudo chmod 0644 /etc/snmp/snmpd.conf",

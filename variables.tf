@@ -29,7 +29,7 @@ variable "chef_resource_group" {
 }
 
 variable "chef_vm_size" {
-  default = "Standard_A4_v2"
+  default = "Standard_D2s_v3"
 }
 
 variable "chef_computer_name" {
@@ -58,7 +58,7 @@ variable "auto_computer_name" {
 }
 
 variable "auto_vm_size" {
-  default = "Standard_D4_v3"
+  default = "Standard_D4s_v3"
 }
 
 variable "automate_package_name" {

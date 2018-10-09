@@ -16,18 +16,13 @@ If you need to rebuild:
 
 - all runners: `terraform destroy -target=azurerm_virtual_machine.runner && terraform apply`
 - single runner: `terraform destroy -target=azurerm_virtual_machine.runner[#] && terraform apply`
-
-			- azl-chef-runr-01 = 0
-			- azl-chef-runr-01 = 1
-			- azl-chef-runr-01 = 2
-			
+  - azl-chef-runr-01 = 0
+  - azl-chef-runr-01 = 1
+  - azl-chef-runr-01 = 2
 - automate server: `terraform destroy -target=azurerm_virtual_machine.automate && terraform apply`
-
-			- this will also rebuild all runners as they depend on automate
-			
+  - this will also rebuild all runners as they depend on automate
 - chef server: `terraform destroy && terraform apply`
-
-			- above command is easiest as automate & runners will be rebuilt upon chef server rebuild
+  - above command is easiest as automate & runners will be rebuilt upon chef server rebuild
 
 ## Terraform variables (Options)
 
@@ -62,6 +57,25 @@ runner.tf
 variables.tf
 
 - contains all variables necessary for all vms
+
+### Secrets
+
+- All located in the 'secrets' directory of the project.
+
+| File                 | Purpose |
+| ---------------------|--------------------------------------------------------------------------------------------|
+| admin_credentials    | linux admin user credentials. User name on the first line, password on the second.         |
+| azure_storage        | azchefsecrets service principal credentials. In LastPass                                   |
+| data_collector_token | Data collector token for communication between Chef and Automate. Uses the default for now |
+| automate.license     | Chef Automate license file                                                                 |
+
+## Notes
+
+- Users are created for Matthew Oleksowicz, Drew Easland, and Scott Flaherty with temporary passwords for both Chef and Automate. These should be changed by their respective users as soon as possible.
+- SNMPD is installed and configured by the Terraform project. Within PRTG auto discovery can be run to establish most basic sensors. Additionally, the following sensors should be configured manually:
+  - SSL Certificate Sensor (Port 443)
+  - SSL Security Check Sensor (Port 443)
+  - HTTP
 
 ## Maintainers
 
