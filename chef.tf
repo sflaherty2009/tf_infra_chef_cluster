@@ -160,7 +160,7 @@ resource "null_resource" "data_collection" {
       "sudo chown root:root /etc/opscode/chef-server.rb",
       "sudo chmod 0644 /etc/opscode/chef-server.rb",
       "sudo su -c 'echo ${azurerm_network_interface.automate.private_ip_address} ${var.auto_computer_name} >> /etc/hosts'",
-      "sudo chef-server-ctl set-secret data_collector token '${file("${path.module}/secrets/admin_credentials")}'",
+      "sudo chef-server-ctl set-secret data_collector token '${file("${path.module}/secrets/data_collector_token")}'",
       "sudo chef-server-ctl restart nginx",
       "sudo chef-server-ctl restart opscode-erchef",
       "sudo chef-server-ctl reconfigure",
