@@ -11,3 +11,4 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Fixed the Chef data collector token assignment.
+
