@@ -1,83 +1,62 @@
-# dvo_infra_chef_cluster
+## Overview
+This Terraform configuration is designed for deploying a comprehensive infrastructure in Azure, including Chef, Automate, and Runner environments. It is structured into modular files for clarity and ease of management.
 
-This template is used to create the infrastucture necessary for Chef Automate
+## File Descriptions
+
+### 1. `automate.tf`
+- **Purpose**: Sets up resources for deploying Automate in Azure.
+- **Key Components**:
+  - Resource group for Automate.
+  - Virtual network interface for Automate instances.
+  - Dependency on Chef VM, indicating integration with Chef setup.
+
+### 2. `chef.tf`
+- **Purpose**: Contains configurations specific to the Chef environment.
+- **Key Components**:
+  - Resource group for Chef.
+  - Virtual network interface for Chef instances.
+
+### 3. `provider.tf`
+- **Purpose**: Configures the Terraform backend and Azure provider.
+- **Key Components**:
+  - Terraform state configuration with Azure storage account details.
+  - Required Azure provider settings, including subscription and client details.
+
+### 4. `runner.tf`
+- **Purpose**: Manages resources for deployment of runners, which could be used for various automation tasks.
+- **Key Components**:
+  - Resource group for runners.
+  - Virtual network interface for runner instances.
+  - Dependency on Automate VM, suggesting a relationship with the Automate setup.
+
+### 5. `variables.tf`
+- **Purpose**: Defines variables used across the Terraform configuration.
+- **Key Components**:
+  - General Azure settings like location and subnet ID.
+  - Specific variables for Chef and Automate environments, including server settings.
+
+## Prerequisites
+- An Azure account with appropriate permissions.
+- Terraform installed and configured on your system.
+- Familiarity with Azure services and Terraform syntax.
 
 ## Usage
+1. **Initialization**: Run `terraform init` to initialize the Terraform environment.
+2. **Configuration**: Update the variables in `variables.tf` as per your Azure environment and requirements.
+3. **Planning**: Execute `terraform plan` to review the proposed changes.
+4. **Deployment**: Apply the configuration using `terraform apply`.
 
-`terraform plan`
+## Security Considerations
+- Ensure that access keys and credentials are securely managed.
+- Review and apply Azure security best practices, especially for network and resource access.
 
-`terraform apply`
+## Maintenance
+- Regularly update the Terraform files to reflect any changes in Azure services or your infrastructure needs.
+- Keep Terraform version updated to the latest stable release.
 
-If you need to add or remove a runner:
+## Support
+For issues or questions regarding this Terraform configuration, please refer to the project's issue tracker or contact the maintainers.
 
-- update default value of runner_count in variables.tf & `terraform apply`
+---
 
-If you need to rebuild:
-
-- all runners: `terraform destroy -target=azurerm_virtual_machine.runner && terraform apply`
-- single runner: `terraform destroy -target=azurerm_virtual_machine.runner[#] && terraform apply`
-  - azl-chef-runr-01 = 0
-  - azl-chef-runr-01 = 1
-  - azl-chef-runr-01 = 2
-- automate server: `terraform destroy -target=azurerm_virtual_machine.automate && terraform apply`
-  - this will also rebuild all runners as they depend on automate
-- chef server: `terraform destroy && terraform apply`
-  - above command is easiest as automate & runners will be rebuilt upon chef server rebuild
-
-## Terraform variables (Options)
-
-All variables and descriptions can be found in variables.tf
-
-## Files in the configuration
-
-automate.tf
-
-- creates resource group, private ips, storage account and virtual machine necessary for chef automate server
-- updates /etc/hosts on the runner vm as necessary
-- completes preflight changes and runs a preflight check before installing chef automate
-- installs azure cli, pulls down necessary files from azure file share and installs & configures chef automate
-
-chef.tf
-
-- creates resource group, private ips, storage account and virtual machine necessary for chef server
-- updates /etc/hosts on the runner vm as necessary
-- installs azure cli, installs & configures chef automate & uploads necessary files to an azure file share for use with chef automate
-
-provider.tf
-
-- sets location for terraform state file
-- sets subscription id to production
-
-runner.tf
-
-- creates resource group, private ips, storage accounts and virtual machines necessary for automate runners
-- updates /etc/hosts on the runner vm as necessary
-- ssh into automate server and perform the install-runner command to setup server as a runner
-
-variables.tf
-
-- contains all variables necessary for all vms
-
-### Secrets
-
-- All located in the 'secrets' directory of the project.
-
-| File                 | Purpose |
-| ---------------------|--------------------------------------------------------------------------------------------|
-| admin_credentials    | linux admin user credentials. User name on the first line, password on the second.         |
-| azure_storage        | azchefsecrets service principal credentials. In LastPass                                   |
-| data_collector_token | Data collector token for communication between Chef and Automate. Uses the default for now |
-| automate.license     | Chef Automate license file                                                                 |
-
-## Notes
-
-- Users are created for Matthew Oleksowicz, Drew Easland, and Scott Flaherty with temporary passwords for both Chef and Automate. These should be changed by their respective users as soon as possible.
-- SNMPD is installed and configured by the Terraform project. Within PRTG auto discovery can be run to establish most basic sensors. Additionally, the following sensors should be configured manually:
-  - SSL Certificate Sensor (Port 443)
-  - SSL Security Check Sensor (Port 443)
-  - HTTP
-
-## Maintainers
-
-Drew Easland (drew_easland@trekbikes.com)
-
+This README provides a high-level overview and is not exhaustive. For detailed information, refer to the content within each file.

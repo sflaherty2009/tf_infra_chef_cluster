@@ -23,16 +23,15 @@ resource "azurerm_network_interface" "automate" {
 # Storage Account & Container
 resource "azurerm_storage_account" "automate" {
   name                     = "azlchefauto01s"
-  resource_group_name      = "${azurerm_resource_group.automate.name}"
-  location                 = "${azurerm_resource_group.automate.location}"
+  resource_group_name      = azurerm_resource_group.automate.name
+  location                 = azurerm_resource_group.automate.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
 }
 
 resource "azurerm_storage_container" "automate" {
   name                  = "vhds"
-  resource_group_name   = "${azurerm_resource_group.automate.name}"
-  storage_account_name  = "${azurerm_storage_account.automate.name}"
+  storage_account_name  = azurerm_storage_account.automate.name
   container_access_type = "private"
 }
 
@@ -118,11 +117,9 @@ resource "azurerm_virtual_machine" "automate" {
       "sudo wget -P /tmp --quiet ${var.automate_package_url}${var.automate_package_name}",
       "sudo dpkg -i /tmp/${var.automate_package_name}",
       "sudo automate-ctl preflight-check",
-      "sudo automate-ctl setup --license /home/${local.admin_user}/delivery.license --key /home/${local.admin_user}/delivery-user.pem --server-url https://${var.chef_computer_name}/organizations/trek --fqdn ${var.auto_computer_name} --enterprise trek --configure --no-build-node",
-      "sudo automate-ctl create-user trek moleksowicz --password Password#1 --roles admin",
-      "sudo automate-ctl create-user trek deasland --password Password#2 --roles admin",
-      "sudo automate-ctl create-user trek sflaherty --password Password#3 --roles admin",
-      "sudo az storage file upload --share-name automate --source /etc/delivery/trek-admin-credentials --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
+      "sudo automate-ctl setup --license /home/${local.admin_user}/delivery.license --key /home/${local.admin_user}/delivery-user.pem --server-url https://${var.chef_computer_name}/organizations/example --fqdn ${var.auto_computer_name} --enterprise example --configure --no-build-node",
+      "sudo automate-ctl create-user example user --password Password#1 --roles admin",
+      "sudo az storage file upload --share-name automate --source /etc/delivery/example-admin-credentials --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
     ]
   }
 
@@ -151,13 +148,13 @@ resource "azurerm_virtual_machine" "automate" {
 }
 
 module "backup_vm_automate" {
-  source                          = "git::https://bitbucket.org/trekbikes/dvo_module_backup_vm.git"
+  source                          = "git::https://bitbucket.org/examplebikes/dvo_module_backup_vm.git"
 
   recovery_vault_rg               = "az-rg-rv-prod"
   recovery_vault_name             = "AZ-RV-prod"
   virtual_machines_resource_group = "${azurerm_resource_group.automate.name}"
   virtual_machines_list           = "${azurerm_virtual_machine.automate.name}"
-  backup_policy                   = "TrekDailyBackupPolicy"
+  backup_policy                   = "exampleDailyBackupPolicy"
 
   depends_on                      = [
     "${azurerm_virtual_machine.automate.id}"

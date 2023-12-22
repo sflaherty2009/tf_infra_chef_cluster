@@ -5,8 +5,12 @@ terraform {
     resource_group_name  = "dvo_terraform"
     key                  = "chef-automate/terraform.tfstate"
   }
-}
-
-provider "azurerm" {
-  subscription_id = "9fbf7025-df40-4908-b7fb-a3a2144cee91"
+   required_providers {
+      azurerm = {
+         subscription_id = "xxxx"
+         client_id = "xxxx"
+         client_secret = "xxxx"
+         tenant_id = "xxxx"
+      }
+   }
 }

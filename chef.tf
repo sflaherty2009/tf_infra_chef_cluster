@@ -30,7 +30,6 @@ resource "azurerm_storage_account" "chef" {
 
 resource "azurerm_storage_container" "chef" {
   name                  = "vhds"
-  resource_group_name   = "${azurerm_resource_group.chef.name}"
   storage_account_name  = "${azurerm_storage_account.chef.name}"
   container_access_type = "private"
 }
@@ -97,16 +96,16 @@ resource "azurerm_virtual_machine" "chef" {
       "sudo chef-server-ctl reconfigure",
       "sudo chef-manage-ctl reconfigure --accept-license",
       "sudo chef-server-ctl user-create delivery Delivery User delivery-user@chef.io ChefDelivery2017 --filename /home/${local.admin_user}/delivery-user.pem",
-      "sudo chef-server-ctl org-create trek 'Trek Bikes' --filename /home/${local.admin_user}/trek-validator.pem -a delivery",
-      "sudo chef-server-ctl user-create moleksowicz Matthew Oleksowicz matthew_oleksowicz@trekbikes.com Password#1 --filename /home/${local.admin_user}/moleksowicz.pem",
-      "sudo chef-server-ctl org-user-add trek moleksowicz --admin",
-      "sudo chef-server-ctl user-create deasland Drew Easland drew_easland@trekbikes.com Password#2 --filename /home/${local.admin_user}/deasland.pem",
-      "sudo chef-server-ctl org-user-add trek deasland --admin",
-      "sudo chef-server-ctl user-create sflaherty Scott Flaherty scott_flaherty@trekbikes.com Password#3 --filename /home/${local.admin_user}/sflaherty.pem",
-      "sudo chef-server-ctl org-user-add trek sflaherty --admin",
+      "sudo chef-server-ctl org-create example 'example Bikes' --filename /home/${local.admin_user}/example-validator.pem -a delivery",
+      "sudo chef-server-ctl user-create moleksowicz Matthew Oleksowicz matthew_oleksowicz@examplebikes.com Password#1 --filename /home/${local.admin_user}/moleksowicz.pem",
+      "sudo chef-server-ctl org-user-add example moleksowicz --admin",
+      "sudo chef-server-ctl user-create deasland Drew Easland drew_easland@examplebikes.com Password#2 --filename /home/${local.admin_user}/deasland.pem",
+      "sudo chef-server-ctl org-user-add example deasland --admin",
+      "sudo chef-server-ctl user-create sflaherty Scott Flaherty scott_flaherty@examplebikes.com Password#3 --filename /home/${local.admin_user}/sflaherty.pem",
+      "sudo chef-server-ctl org-user-add example sflaherty --admin",
       "sudo az login --service-principal -u ${local.azure_service_principal} -p ${local.azure_password} --tenant ${local.azure_tenant_id}",
       "sudo az storage file upload --share-name automate --source /home/${local.admin_user}/delivery-user.pem --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
-      "sudo az storage file upload --share-name automate --source /home/${local.admin_user}/trek-validator.pem --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
+      "sudo az storage file upload --share-name automate --source /home/${local.admin_user}/example-validator.pem --account-name ${local.azure_account_name} --account-key ${local.azure_account_key}",
       "sudo apt-get -y install snmpd",
     ]
   }
@@ -131,7 +130,7 @@ resource "azurerm_virtual_machine" "chef" {
 data "template_file" "chef-server" {
   template = "${file("${path.module}/templates/chef-server.rb")}"
 
-  vars {
+  vars = {
     auto_computer_name = "${var.auto_computer_name}"
   }
 }
@@ -169,13 +168,13 @@ resource "null_resource" "data_collection" {
 }
 
 module "backup_vm_chef" {
-  source                          = "git::https://bitbucket.org/trekbikes/dvo_module_backup_vm.git"
+  source                          = "git::https://bitbucket.org/examplebikes/dvo_module_backup_vm.git"
 
   recovery_vault_rg               = "az-rg-rv-prod"
   recovery_vault_name             = "AZ-RV-prod"
   virtual_machines_resource_group = "${azurerm_resource_group.chef.name}"
   virtual_machines_list           = "${azurerm_virtual_machine.chef.name}"
-  backup_policy                   = "TrekDailyBackupPolicy"
+  backup_policy                   = "exampleDailyBackupPolicy"
 
   depends_on                      = [
     "${azurerm_virtual_machine.chef.id}"

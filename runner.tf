@@ -32,7 +32,6 @@ resource "azurerm_storage_account" "runner" {
 
 resource "azurerm_storage_container" "runner" {
   name                  = "vhds"
-  resource_group_name   = "${azurerm_resource_group.runner.name}"
   storage_account_name  = "${element(azurerm_storage_account.runner.*.name, count.index)}"
   container_access_type = "private"
   count                 = "${var.runner_count}"
@@ -117,8 +116,8 @@ resource "null_resource" "runners" {
 
   provisioner "remote-exec" {
     inline = [
-      "sudo chmod 744 /tmp/install-runners.sh"
-      "sudo /tmp/install-runners.sh '${var.runner_computer_name}' '${var.runner_count}' '${local.admin_user}' '${local.admin_password}' '${var.runner_chefdk_version}' '${join("' ", azurerm_network_interface.runner.*.private_ip_address)}"'
+      "sudo chmod 744 /tmp/install-runners.sh",
+      "sudo /tmp/install-runners.sh '${var.runner_computer_name}' '${var.runner_count}' '${local.admin_user}' '${local.admin_password}' '${var.runner_chefdk_version}' '${join("' ", azurerm_network_interface.runner.*.private_ip_address)}'"
     ]
   }
 }
